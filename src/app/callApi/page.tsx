@@ -1,7 +1,6 @@
 "use client";
 
 import { useEffect, useState } from "react";
-import { deleteData, getAllData, insertToDb, updateData } from "./action";
 import { Todo } from "@prisma/client";
 import Link from "next/link";
 
@@ -13,7 +12,22 @@ export default function Home() {
     e.preventDefault();
     const form = e.currentTarget;
     const formData = new FormData(form);
-    const response = insertToDb(formData);
+    // get title from form
+    const title = formData.get("title")?.toString();
+    if (!title) {
+      setError(new Error("Title is required"));
+      return;
+    }
+
+    // insert to db
+    const response = fetch("/api/todo", {
+      method: "POST",
+      body: JSON.stringify({ title }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
+
     if (response instanceof Error) {
       setError(response);
       return;
@@ -22,31 +36,30 @@ export default function Home() {
   };
 
   const loadList = async () => {
-    const response = await getAllData();
-    if (response instanceof Error) {
-      setError(response);
-      return;
-    }
+    const response = await (await fetch("/api/todo")).json();
     setList(response);
   };
 
   const deleteTodo = async (id: number) => {
-    // delete todo
-    const response = await deleteData({ id });
-    if (response instanceof Error) {
-      setError(response);
-      return;
-    }
+    const response = await fetch("/api/todo", {
+      method: "DELETE",
+      body: JSON.stringify({ id }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
     loadList();
   };
 
   const updateTodo = async (id: number, status: boolean) => {
     // update todo status
-    const response = await updateData({ id, status });
-    if (response instanceof Error) {
-      setError(response);
-      return;
-    }
+    const response = await fetch("/api/todo", {
+      method: "PUT",
+      body: JSON.stringify({ id, status }),
+      headers: {
+        "Content-Type": "application/json",
+      },
+    });
     loadList();
   };
 
@@ -118,8 +131,10 @@ export default function Home() {
           </div>
           {/* switch to call api page */}
           <div className="text-center mt-10">
-            <Link href="/callApi">
-              <p className="p-2 bg-blue-400 text-white rounded-lg">Call Api</p>
+            <Link href="/">
+              <p className="p-2 bg-blue-400 text-white rounded-lg">
+                Server Action
+              </p>
             </Link>
           </div>
         </div>
